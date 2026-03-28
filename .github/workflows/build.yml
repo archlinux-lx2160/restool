@@ -33,10 +33,11 @@ jobs:
           RUN pacman -Rdd --noconfirm $(pacman -Qq | grep '^linux') 2>/dev/null || true
           RUN pacman -Syu --noconfirm base-devel git
           RUN sed -i '0,/if (( EUID == 0 ))/s/if (( EUID == 0 ))/if false/' /usr/bin/makepkg
+          RUN pacman -Scc --noconfirm && rm -rf /var/log/* /tmp/*
           DOCKERFILE
           docker build -t archlinux-aarch64 .
-          docker save archlinux-aarch64 | zstd -T0 -o /tmp/archlinux-aarch64.tar.zst
           docker images archlinux-aarch64
+          docker save archlinux-aarch64 | zstd -T0 -o /tmp/archlinux-aarch64.tar.zst
           ls -lh /tmp/archlinux-aarch64.tar.zst
 
       - name: Load cached Docker image
