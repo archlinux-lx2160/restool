@@ -7,6 +7,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-24.04-arm
@@ -58,3 +61,15 @@ jobs:
         with:
           name: restool-package
           path: "*.pkg.tar.*"
+
+      - name: Create release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PKG=$(ls *.pkg.tar.* | head -1)
+          eval "$(grep -E '^(pkgver|pkgrel)=' PKGBUILD)"
+          TAG="${pkgver}-${pkgrel}"
+          gh release create "$TAG" "$PKG" \
+            --title "restool $TAG" \
+            --notes "Automated build from commit ${{ github.sha }}"
