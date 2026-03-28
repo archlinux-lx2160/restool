@@ -18,7 +18,7 @@ jobs:
         uses: actions/cache@v4
         id: docker-cache
         with:
-          path: /tmp/archlinux-aarch64.tar.gz
+          path: /tmp/archlinux-aarch64.tar.zst
           key: archlinux-aarch64-${{ hashFiles('.github/workflows/build.yml') }}
 
       - name: Build Arch Linux ARM Docker image
@@ -35,13 +35,13 @@ jobs:
           RUN sed -i '0,/if (( EUID == 0 ))/s/if (( EUID == 0 ))/if false/' /usr/bin/makepkg
           DOCKERFILE
           docker build -t archlinux-aarch64 .
-          docker save archlinux-aarch64 | gzip > /tmp/archlinux-aarch64.tar.gz
+          docker save archlinux-aarch64 | zstd -T0 -o /tmp/archlinux-aarch64.tar.zst
           docker images archlinux-aarch64
-          ls -lh /tmp/archlinux-aarch64.tar.gz
+          ls -lh /tmp/archlinux-aarch64.tar.zst
 
       - name: Load cached Docker image
         if: steps.docker-cache.outputs.cache-hit == 'true'
-        run: gunzip -c /tmp/archlinux-aarch64.tar.gz | docker load
+        run: zstd -d /tmp/archlinux-aarch64.tar.zst --stdout | docker load
 
       - name: Build package
         run: |
