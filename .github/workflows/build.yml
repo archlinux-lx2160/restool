@@ -26,16 +26,18 @@ jobs:
         run: |
           curl -LO http://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz
           cat <<'DOCKERFILE' > Dockerfile
-          FROM scratch
+          FROM scratch AS base
           ADD ArchLinuxARM-aarch64-latest.tar.gz /
           RUN pacman-key --init && pacman-key --populate archlinuxarm
           RUN sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
           RUN pacman -Rdd --noconfirm $(pacman -Qq | grep '^linux') 2>/dev/null || true
           RUN pacman -Syu --noconfirm base-devel git
           RUN sed -i '0,/if (( EUID == 0 ))/s/if (( EUID == 0 ))/if false/' /usr/bin/makepkg
-          RUN pacman -Scc --noconfirm && rm -rf /var/log/* /tmp/*
+          RUN pacman -Scc --noconfirm && rm -rf /var/log/* /tmp/* /var/cache/pacman/pkg/*
+          FROM scratch
+          COPY --from=base / /
           DOCKERFILE
-          docker build --squash -t archlinux-aarch64 .
+          docker build -t archlinux-aarch64 .
           docker images archlinux-aarch64
           docker save archlinux-aarch64 | zstd -T0 -o /tmp/archlinux-aarch64.tar.zst
           ls -lh /tmp/archlinux-aarch64.tar.zst
