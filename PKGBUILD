@@ -8,7 +8,7 @@ arch=('aarch64' 'armv7h' 'armv6h')
 url="https://github.com/nxp-qoriq/restool"
 license=('GPL')
 depends=()
-makedepends=(git make gcc pandoc)
+makedepends=(git make gcc)
 provides=(restool)
 source=("git+https://github.com/nxp-qoriq/restool.git#tag=$_pkgver")
 sha1sums=('SKIP')
@@ -16,15 +16,27 @@ sha1sums=('SKIP')
 build() {
   cd "$srcdir/$pkgname"
 
-  # Patch the code to compile properly
-  #find -type f -name '*.c' | xargs sed -i 's/^enum mc_cmd_status mc_status;/static enum mc_cmd_status mc_status;/'
-  #sed -i '/-Werror \\/d' Makefile
+  # Provide a dummy pandoc so make install can skip man page generation
+  mkdir -p "$srcdir/bin"
+  cat > "$srcdir/bin/pandoc" << 'EOF'
+#!/bin/sh
+out=""
+next=0
+for arg; do
+  if [ "$next" = 1 ]; then out="$arg"; next=0
+  elif [ "$arg" = "-o" ]; then next=1; fi
+done
+[ -n "$out" ] && touch "$out"
+EOF
+  chmod +x "$srcdir/bin/pandoc"
+  export PATH="$srcdir/bin:$PATH"
 
   make
 }
 
 package() {
   cd "$srcdir/$pkgname"
+  export PATH="$srcdir/bin:$PATH"
 
   make DESTDIR="$pkgdir/" prefix="/usr/" install
 }
