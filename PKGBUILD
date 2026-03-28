@@ -8,7 +8,7 @@ arch=('aarch64' 'armv7h' 'armv6h')
 url="https://github.com/nxp-qoriq/restool"
 license=('GPL')
 depends=()
-makedepends=(git make gcc)
+makedepends=(git make gcc pandoc)
 provides=(restool)
 source=("git+https://github.com/nxp-qoriq/restool.git#tag=$_pkgver")
 sha1sums=('SKIP')
