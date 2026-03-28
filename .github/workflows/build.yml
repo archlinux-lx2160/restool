@@ -14,15 +14,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Cache Docker image
         uses: actions/cache@v4
         id: docker-cache
         with:
-          path: /tmp/archlinux-arm.tar.gz
-          key: archlinux-arm-${{ hashFiles('.github/workflows/build.yml') }}
+          path: /tmp/archlinux-aarch64.tar.gz
+          key: archlinux-aarch64-${{ hashFiles('.github/workflows/build.yml') }}
 
       - name: Build Arch Linux ARM Docker image
         if: steps.docker-cache.outputs.cache-hit != 'true'
@@ -32,21 +29,25 @@ jobs:
           FROM scratch
           ADD ArchLinuxARM-aarch64-latest.tar.gz /
           RUN pacman-key --init && pacman-key --populate archlinuxarm
+          RUN sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
+          RUN pacman -Rdd --noconfirm $(pacman -Qq | grep '^linux') 2>/dev/null || true
           RUN pacman -Syu --noconfirm base-devel git
           RUN sed -i '0,/if (( EUID == 0 ))/s/if (( EUID == 0 ))/if false/' /usr/bin/makepkg
           DOCKERFILE
-          docker build -t archlinux-arm .
-          docker save archlinux-arm | gzip > /tmp/archlinux-arm.tar.gz
+          docker build -t archlinux-aarch64 .
+          docker save archlinux-aarch64 | gzip > /tmp/archlinux-aarch64.tar.gz
+          docker images archlinux-aarch64
+          ls -lh /tmp/archlinux-aarch64.tar.gz
 
       - name: Load cached Docker image
         if: steps.docker-cache.outputs.cache-hit == 'true'
-        run: gunzip -c /tmp/archlinux-arm.tar.gz | docker load
+        run: gunzip -c /tmp/archlinux-aarch64.tar.gz | docker load
 
       - name: Build package
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/pkg" \
-            archlinux-arm \
+            archlinux-aarch64 \
             bash -c 'cd /pkg && makepkg -s --noconfirm'
 
       - name: Upload package artifact
